@@ -24,3 +24,5 @@ target
 # Added by cargo
 
 /target
+test_file.*
+test_output.tmp
