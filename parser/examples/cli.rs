@@ -1,6 +1,7 @@
 use clap::{Parser, ValueEnum};
 use std::io::{self, Read, Write};
-
+// use upload::add # NOTE добавить сюда работу с крейтами
+// use converter::add # NOTE добавить сюда работу с крейтами
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
 
 // cargo run --example cli -- --in-format csv --out-format mt940 -i "./example.csv" -o stdout "./example.mt940"

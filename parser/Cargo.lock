@@ -99,6 +99,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
+name = "converter"
+version = "0.1.0"
+
+[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -121,6 +125,8 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "converter",
+ "upload",
 ]
 
 [[package]]
@@ -163,6 +169,10 @@ name = "unicode-ident"
 version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f63a545481291138910575129486daeaf8ac54aee4387fe7906919f7830c7d9d"
+
+[[package]]
+name = "upload"
+version = "0.1.0"
 
 [[package]]
 name = "utf8parse"
