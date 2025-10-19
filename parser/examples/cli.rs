@@ -1,5 +1,5 @@
 use clap::{Parser, ValueEnum};
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 use upload::{FileUpload, Uploader};
 // use converter::add # NOTE добавить сюда работу с крейтами
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
