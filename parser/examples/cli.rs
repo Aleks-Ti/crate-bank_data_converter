@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 use std::io::{self, Read, Write};
-// use upload::add # NOTE добавить сюда работу с крейтами
+use upload::{FileSystemOutput, IoOutput, Uploader};
 // use converter::add # NOTE добавить сюда работу с крейтами
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
 
@@ -70,8 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let input_data = read_input(cli.input.as_deref())?;
     let output_data = input_data;
-    write_output(&output_data, cli.output.as_deref())?;
-
+    IoOutput::upload(&output_data, cli.output.as_deref())?;
     Ok(())
 }
 
