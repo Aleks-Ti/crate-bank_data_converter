@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 use std::io::{self, Read, Write};
-use upload::{FileSystemOutput, IoOutput, Uploader};
+use upload::{FileUpload, Uploader};
 // use converter::add # NOTE добавить сюда работу с крейтами
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
 
@@ -57,20 +57,13 @@ fn read_input(path: Option<&str>) -> io::Result<Vec<u8>> {
     }
 }
 
-fn write_output(data: &[u8], path: Option<&str>) -> io::Result<()> {
-    if let Some(filename) = path {
-        std::fs::write(filename, data)?;
-    } else {
-        io::stdout().write_all(data)?;
-    }
-    Ok(())
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let input_data = read_input(cli.input.as_deref())?;
+    // сюда парсер
+    // сюда конвертер
     let output_data = input_data;
-    IoOutput::upload(&output_data, cli.output.as_deref())?;
+    FileUpload::upload(&output_data, cli.output.as_deref())?;
     Ok(())
 }
 
