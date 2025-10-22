@@ -1,13 +1,6 @@
 use std::io::{self, Write};
-pub trait Uploader {
-    fn upload(data: &[u8], path: Option<&str>) -> io::Result<()>;
-}
 
-#[derive(Debug)]
-pub struct FileUpload;
-
-impl Uploader for FileUpload {
-    fn upload(data: &[u8], path: Option<&str>) -> io::Result<()> {
+pub fn upload(data: &[u8], path: Option<&str>) -> io::Result<()> {
         if let Some(filename) = path {
             std::fs::write(filename, data)?;
             Ok(())
@@ -16,7 +9,7 @@ impl Uploader for FileUpload {
             Ok(())
         }
     }
-}
+
 
 #[cfg(test)]
 mod tests {
@@ -27,7 +20,7 @@ mod tests {
     fn file_system_output() {
         let data = "tests".as_bytes();
         let path = "test_file.csv";
-        let _ = FileUpload::upload(data, Some(path));
+        let _ = upload(data, Some(path));
         assert!(std::path::Path::new("test_file.csv").exists());
         let _ = fs::remove_file(path);
     }
@@ -36,7 +29,7 @@ mod tests {
     fn file_system_output_temp() {
         let data = "tests".as_bytes();
         let temp_file = "test_output.tmp";
-        let _ = FileUpload::upload(data, Some(temp_file)).unwrap();
+        let _ = upload(data, Some(temp_file)).unwrap();
         let content = fs::read_to_string(temp_file).unwrap();
         assert_eq!(content, "tests");
         let _ = fs::remove_file(temp_file);
@@ -44,6 +37,6 @@ mod tests {
     #[test]
     fn io_output_stdout() {
         let data = "TEST STDOUT\n".as_bytes();
-        FileUpload::upload(data, None).unwrap();
+        upload(data, None).unwrap();
     }
 }
