@@ -1,13 +1,13 @@
 use clap::{Parser, ValueEnum};
 use std::io::{self, Read};
-use upload::{FileUpload, Uploader};
+use upload;
 // use converter::add # NOTE добавить сюда работу с крейтами
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
 
 // cargo run --example cli -- --in-format csv --out-format mt940 -i "./example.csv" -o stdout "./example.mt940"
 // cargo run --example cli -- --help
 #[derive(Parser)]
-#[command(version, about, long_about = "Cli инструмент для тестирования и пробы работы библиотеки.")]
+#[command(version, about, long_about = "Cli инструмент для тестирования работы библиотеки.")]
 struct Cli {
     /// Выберите формат ввода: "Csv", "mt940", "camt053",
     #[arg(short = 'I', long, value_enum)]
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // сюда парсер
     // сюда конвертер
     let output_data = input_data;
-    FileUpload::upload(&output_data, cli.output.as_deref())?;
+    upload::upload(&output_data, cli.output.as_deref())?;
     Ok(())
 }
 
