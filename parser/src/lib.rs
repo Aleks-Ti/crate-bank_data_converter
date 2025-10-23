@@ -87,7 +87,7 @@ impl Parser for Mt940Parser {
                 ));
             }
         }
-        Ok(Mt940Parser { data: data })
+        Ok(Mt940Parser { data })
     }
 }
 
