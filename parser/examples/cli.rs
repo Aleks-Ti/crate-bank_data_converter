@@ -61,7 +61,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let input_data = read_input(cli.input.as_deref())?;
     // сюда парсер
-    // сюда конвертер
     let output_data = input_data;
     upload::upload(&output_data, cli.output.as_deref())?;
     Ok(())
