@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 use std::io::{self, Read};
-use upload;
+use upload::upload;
 
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
 
@@ -75,6 +75,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &converter::Format::from(cli.out_format),
     )?;
 
-    upload::upload(output_text.as_bytes(), cli.output.as_deref())?;
+    upload(output_text.as_bytes(), cli.output.as_deref())?;
     Ok(())
 }

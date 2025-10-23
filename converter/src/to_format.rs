@@ -35,7 +35,7 @@ impl ToFormat for Mt940Format {
             if !tx.description.is_empty() {
                 output.push_str(&format!(":86:{}\n", tx.description));
             }
-            output.push_str("\n");
+            output.push('\n');
         }
         output
     }
