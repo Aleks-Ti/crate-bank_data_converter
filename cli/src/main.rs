@@ -1,7 +1,7 @@
 use clap::{Parser, ValueEnum};
 use std::io::{self, Read};
 use upload;
-// use converter::add # NOTE добавить сюда работу с крейтами
+
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
 
 // cargo run --example cli -- --in-format csv --out-format mt940 -i "./example.csv" -o stdout "./example.mt940"
@@ -30,9 +30,19 @@ enum Format {
     Camt053,
 }
 
+impl From<Format> for converter::Format {
+    fn from(f: Format) -> Self {
+        match f {
+            Format::Csv => converter::Format::Csv,
+            Format::Mt940 => converter::Format::Mt940,
+            Format::Camt053 => converter::Format::Camt053,
+        }
+    }
+}
+
 fn read_input(path: Option<&str>) -> io::Result<Vec<u8>> {
     if let Some(filename) = path {
-        let data: Vec<u8> = std::fs::read(filename)?;
+        let data = std::fs::read(filename)?;
         if data.len() > LIMIT {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -52,7 +62,6 @@ fn read_input(path: Option<&str>) -> io::Result<Vec<u8>> {
                 return Err(io::Error::new(io::ErrorKind::InvalidInput, "stdin превышает 100 МБ"));
             }
         }
-
         Ok(buffer)
     }
 }
@@ -60,19 +69,12 @@ fn read_input(path: Option<&str>) -> io::Result<Vec<u8>> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let input_data = read_input(cli.input.as_deref())?;
-    // сюда парсер
-    let output_data = input_data;
-    upload::upload(&output_data, cli.output.as_deref())?;
+    let output_text = converter::convert(
+        &input_data[..],
+        &converter::Format::from(cli.in_format),
+        &converter::Format::from(cli.out_format),
+    )?;
+
+    upload::upload(output_text.as_bytes(), cli.output.as_deref())?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }

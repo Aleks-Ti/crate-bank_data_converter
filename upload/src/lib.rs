@@ -1,15 +1,14 @@
 use std::io::{self, Write};
 
 pub fn upload(data: &[u8], path: Option<&str>) -> io::Result<()> {
-        if let Some(filename) = path {
-            std::fs::write(filename, data)?;
-            Ok(())
-        } else {
-            io::stdout().write_all(data)?;
-            Ok(())
-        }
+    if let Some(filename) = path {
+        std::fs::write(filename, data)?;
+        Ok(())
+    } else {
+        io::stdout().write_all(data)?;
+        Ok(())
     }
-
+}
 
 #[cfg(test)]
 mod tests {
