@@ -1,6 +1,6 @@
 use crate::model::Transaction;
 use parser::{Camt053Parser, CsvParser, Mt940Parser};
-
+use regex::Regex;
 pub trait FromParser {
     fn to_transactions(&self) -> Vec<Transaction>;
 }
@@ -41,15 +41,22 @@ impl FromParser for Mt940Parser {
                 "20" => current.reference = record.value.clone(),
                 "25" => current.account = record.value.clone(),
                 "61" => {
-                    if let Some(comma) = record.value.find(',') {
-                        let amount_str = &record.value[..comma];
-                        if let Ok(amount) = amount_str.parse::<f64>() {
+                    let value = &record.value;
+                    if value.len() >= 6 {
+                        let date_part = &value[..6];
+                        current.value_date = format!("20{}-{}-{}", &date_part[0..2], &date_part[2..4], &date_part[4..6]);
+                    }
+                    let re = Regex::new(r"^[0-9]{6,10}(C|D)R?([0-9,]+)").unwrap();
+                    if let Some(caps) = re.captures(value) {
+                        let op_type = &caps[1];
+                        let amount_str = &caps[2];
+                        let amount_clean = amount_str.replace(',', ".");
+                        if let Ok(mut amount) = amount_clean.parse::<f64>() {
+                            if op_type == "D" {
+                                amount = -amount;
+                            }
                             current.amount = amount;
                         }
-                    }
-                    if record.value.len() >= 6 {
-                        let date_str = &record.value[..6];
-                        current.value_date = format!("20{}-{}-{}", &date_str[0..2], &date_str[2..4], &date_str[4..6]);
                     }
                 }
                 "86" => current.description = record.value.clone(),
@@ -73,5 +80,36 @@ impl FromParser for Camt053Parser {
             value_date: "1970-01-01".to_string(),
             description: "Parsed from CAMT.053".to_string(),
         }]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use parser::Parser;
+
+    use super::*;
+    #[test]
+    fn mt940_amount_dr_should_be_negative() {
+        // дебет 100,50 → сумма должна быть -100.50
+        let mt940 = ":20:REF\n:25:ACC\n:61:2301010101DR100,50NMSCNONREF\n:86:desc\n";
+        let p = Mt940Parser::parse(mt940.as_bytes()).unwrap();
+
+        let txs = FromParser::to_transactions(&p);
+
+        assert_eq!(txs.len(), 1, "должна быть ровно одна транзакция");
+        // ❗ На твоём текущем коде amount останется 0.0 → тест УПАДЁТ
+        assert!(
+            (txs[0].amount - (-100.50)).abs() < 1e-6,
+            "ожидали -100.50, а получили {}",
+            txs[0].amount
+        );
+    }
+    #[test]
+    fn mt940_amount_cr_should_be_positive() {
+        let mt940 = ":20:REF2\n:25:ACC2\n:61:230101CR999,99NTRFREF123\n";
+        let p = Mt940Parser::parse(mt940.as_bytes()).unwrap();
+        let txs = FromParser::to_transactions(&p);
+        assert_eq!(txs.len(), 1);
+        assert!((txs[0].amount - 999.99).abs() < 1e-6);
     }
 }

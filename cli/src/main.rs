@@ -4,8 +4,6 @@ use upload::upload;
 
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
 
-// cargo run --example cli -- --in-format csv --out-format mt940 -i "./example.csv" -o stdout "./example.mt940"
-// cargo run --example cli -- --help
 #[derive(Parser)]
 #[command(version, about, long_about = "Cli инструмент для тестирования работы библиотеки.")]
 struct Cli {
