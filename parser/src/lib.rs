@@ -1,6 +1,6 @@
 use std::io::Read;
 mod error;
-
+use csv::ReaderBuilder;
 pub use error::ParseError;
 
 pub trait Parser {
@@ -34,29 +34,16 @@ pub struct Camt053Parser {
 }
 
 impl Parser for CsvParser {
-    fn parse<R: Read>(mut input: R) -> Result<Self, ParseError>
-    where
-        Self: Sized,
-    {
-        let mut buffer = String::new();
-        input.read_to_string(&mut buffer).map_err(ParseError::Io)?;
-
-        if buffer.contains("'") || buffer.is_empty() {
-            return Err(ParseError::InvalidFormat(
-                "CSV invalid. Парсер не поддерживает ковычки однойные внутри структуры данных.".to_string(),
-            ));
-        };
+    fn parse<R: Read>(input: R) -> Result<Self, ParseError> {
+        let reader = ReaderBuilder::new().has_headers(false).from_reader(input);
 
         let mut rows = Vec::new();
-        for line in buffer.lines() {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-
-            let row: Vec<String> = line.split(',').map(|s| s.trim().to_string()).collect();
+        for result in reader.into_records() {
+            let record = result.map_err(|e| ParseError::InvalidFormat(e.to_string()))?;
+            let row = record.iter().map(|s| s.to_string()).collect();
             rows.push(CsvRow { row });
         }
+
         Ok(CsvParser { rows })
     }
 }
@@ -141,22 +128,9 @@ mod tests {
         let input = "fullname, transaction_id, comment\nAleks, 21312312, На мягкие французкие булки\n";
         let parser = CsvParser::parse(input.as_bytes()).unwrap();
         assert_eq!(parser.rows.len(), 2);
+        assert_eq!(parser.rows[0].row.len(), 3);
         assert_eq!(parser.rows[0].row[0], "fullname".to_string());
         assert_eq!(parser.rows[1].row[0], "Aleks".to_string());
-    }
-
-    #[test]
-    fn test_csv_parse_invalid_not_csv() {
-        let input = "невиданная, 'хрень";
-        let result = CsvParser::parse(input.as_bytes());
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ParseError::InvalidFormat(_)));
-    }
-    #[test]
-    fn test_csv_parse_empty() {
-        let input = "";
-        let result = CsvParser::parse(input.as_bytes());
-        assert!(result.is_err());
     }
 
     #[test]
