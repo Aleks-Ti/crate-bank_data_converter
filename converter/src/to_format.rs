@@ -5,7 +5,7 @@ use crate::model::Transaction;
 /// Базовый trait для конвертеров форматов.
 pub trait ToFormat {
     /// Обязательный метод для всех кто реализует ToFormat.
-    /// 
+    ///
     /// Записывает в Write данные преобразования.
     fn from_transactions<W: Write>(txs: &[Transaction], writer: W) -> std::io::Result<()>;
 }
@@ -22,10 +22,7 @@ fn escape_csv_field(field: &str) -> String {
 pub struct CsvFormat;
 impl ToFormat for CsvFormat {
     fn from_transactions<W: Write>(txs: &[Transaction], mut writer: W) -> std::io::Result<()> {
-        writeln!(
-            writer,
-            "reference,account,amount,currency,date,description"
-        )?;
+        writeln!(writer, "reference,account,amount,currency,date,description")?;
 
         for tx in txs {
             writeln!(

@@ -5,7 +5,6 @@
 //! - MT940 (SWIFT)
 //! - CAMT.053 (ISO 20022 XML)
 
-
 #![warn(missing_docs)]
 pub mod error;
 mod from_parser;
