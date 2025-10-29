@@ -26,27 +26,32 @@ impl FromParser for CsvParser {
 }
 impl FromParser for Mt940Parser {
     fn to_transactions(&self) -> Vec<Transaction> {
-        let mut txs = Vec::new();
-        let mut current = Transaction {
-            reference: "".to_string(),
-            account: "".to_string(),
-            amount: 0.0,
-            currency: "XXX".to_string(),
-            value_date: "1970-01-01".to_string(),
-            description: "".to_string(),
-        };
+        let mut txs: Vec<Transaction> = Vec::new();
+        let mut reference = String::new();
+        let mut account = String::new();
 
+        let re = Regex::new(r"^[0-9]{6,10}(C|D)R?([0-9,]+)").unwrap();
         for record in &self.data {
             match record.tag.as_str() {
-                "20" => current.reference = record.value.clone(),
-                "25" => current.account = record.value.clone(),
+                "20" => reference = record.value.clone(),
+                "25" => account = record.value.clone(),
                 "61" => {
+                    let mut current = Transaction {
+                        reference: reference.clone(),
+                        account: account.clone(),
+                        amount: 0.0,
+                        currency: "XXX".to_string(),
+                        value_date: "1970-01-01".to_string(),
+                        description: "".to_string(),
+                    };
+
                     let value = &record.value;
+
                     if value.len() >= 6 {
                         let date_part = &value[..6];
                         current.value_date = format!("20{}-{}-{}", &date_part[0..2], &date_part[2..4], &date_part[4..6]);
                     }
-                    let re = Regex::new(r"^[0-9]{6,10}(C|D)R?([0-9,]+)").unwrap();
+
                     if let Some(caps) = re.captures(value) {
                         let op_type = &caps[1];
                         let amount_str = &caps[2];
@@ -58,13 +63,15 @@ impl FromParser for Mt940Parser {
                             current.amount = amount;
                         }
                     }
+                    txs.push(current);
                 }
-                "86" => current.description = record.value.clone(),
+                "86" => {
+                    if let Some(last) = txs.last_mut() {
+                        last.description = record.value.clone()
+                    }
+                }
                 _ => {}
             }
-        }
-        if !current.reference.is_empty() {
-            txs.push(current);
         }
         txs
     }
@@ -111,5 +118,21 @@ mod tests {
         let txs = FromParser::to_transactions(&p);
         assert_eq!(txs.len(), 1);
         assert!((txs[0].amount - 999.99).abs() < 1e-6);
+    }
+    #[test]
+    fn mt940_multiple_61_should_produce_multiple_transactions() {
+        let mt940 = "\
+        :20:REF
+        :25:ACC
+        :61:230101CR10,00NMSCREF1
+        :86:first
+        :61:230102DR5,00NMSCREF2
+        :86:second
+    ";
+        let p = Mt940Parser::parse(mt940.as_bytes()).unwrap();
+        let txs = FromParser::to_transactions(&p);
+
+        // ❗ На текущем коде будет len()==1 → тест УПАДЁТ
+        assert_eq!(txs.len(), 2, "каждый :61: должен создавать новую транзакцию");
     }
 }
