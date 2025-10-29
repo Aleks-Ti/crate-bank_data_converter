@@ -1,92 +1,105 @@
+use std::io::Write;
+
 use crate::model::Transaction;
 
 pub trait ToFormat {
-    fn from_transactions(txs: &[Transaction]) -> String;
+    fn from_transactions<W: Write>(txs: &[Transaction], writer: W) -> std::io::Result<()>;
 }
 
 pub struct CsvFormat;
 impl ToFormat for CsvFormat {
-    fn from_transactions(txs: &[Transaction]) -> String {
-        let mut output = "reference,account,amount,currency,date,description\n".to_string();
+    fn from_transactions<W: Write>(txs: &[Transaction], mut writer: W) -> std::io::Result<()> {
+        writeln!(writer, "reference,account,amount,currency,date,description")?;
         for tx in txs {
-            output.push_str(&format!(
-                "{},{},{},{},{},{}\n",
+            writeln!(
+                writer,
+                "{},{},{},{},{},{}",
                 tx.reference, tx.account, tx.amount, tx.currency, tx.value_date, tx.description
-            ));
+            )?;
         }
-        output
+        Ok(())
     }
 }
 
 pub struct Mt940Format;
 impl ToFormat for Mt940Format {
-    fn from_transactions(txs: &[Transaction]) -> String {
-        let mut output = String::new();
+    fn from_transactions<W: Write>(txs: &[Transaction], mut writer: W) -> std::io::Result<()> {
+        // let mut output = String::new();
         for tx in txs {
-            output.push_str(&format!(":20:{}\n", tx.reference));
-            output.push_str(&format!(":25:{}\n", tx.account));
-            output.push_str(&format!(
+            writeln!(writer, ":20:{}\n", tx.reference)?;
+            writeln!(writer, ":25:{}\n", tx.account)?;
+            writeln!(
+                writer,
                 ":61:{}{}{}DR{:.2}NMSCNONREF\n",
                 &tx.value_date[2..4],
                 &tx.value_date[5..7],
                 &tx.value_date[8..10],
                 tx.amount
-            ));
+            )?;
             if !tx.description.is_empty() {
-                output.push_str(&format!(":86:{}\n", tx.description));
+                writeln!(writer, ":86:{}\n", tx.description)?;
             }
-            output.push('\n');
+            writeln!(writer, "{}", '\n')?;
         }
-        output
+        Ok(())
     }
 }
 
 pub struct Camt053Format;
 impl ToFormat for Camt053Format {
-    fn from_transactions(txs: &[Transaction]) -> String {
+    fn from_transactions<W: Write>(txs: &[Transaction], mut writer: W) -> std::io::Result<()> {
         if txs.is_empty() {
-            return r#"<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02"></Document>"#.to_string();
+            write!(
+                writer,
+                r#"<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02"></Document>"#
+            )?;
+            return Ok(());
         }
 
         let statement_id = &txs[0].reference;
         let account_id = &txs[0].account;
 
-        let entries: Vec<String> = txs
-            .iter()
-            .map(|tx| {
-                format!(
-                    r#"
-                    <Ntry>
-                        <Amt Ccy="{}">{}</Amt>
-                        <RvslInd>{}</RvslInd>
-                        <AddtlNtryInf>{}</AddtlNtryInf>
-                    </Ntry>
-                    "#,
-                    tx.currency,
-                    tx.amount.abs(),
-                    if tx.amount < 0.0 { "true" } else { "false" },
-                    tx.description
-                )
-            })
-            .collect();
-
-        format!(
-            r#"<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+        writeln!(
+            writer,
+            r#"
+            <Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
             <BkToCstmrStmt>
-                <Stmt>
+            <Stmt>
+            <Id>{}</Id>
+            <Acct>
                 <Id>{}</Id>
-                <Acct>
-                <Id>{}</Id>
-                </Acct>
-                {}
-                </Stmt>
+            </Acct>
+            "#,
+            statement_id, account_id
+        )?;
+
+        for tx in txs {
+            writeln!(
+                writer,
+                r#"
+                <Ntry>
+                    <Amt Ccy="{}">{}</Amt>
+                    <RvslInd>{}</RvslInd>
+                    <AddtlNtryInf>{}</AddtlNtryInf>
+                </Ntry>
+                "#,
+                tx.currency,
+                tx.amount.abs(),
+                if tx.amount < 0.0 { "true" } else { "false" },
+                tx.description
+            )?;
+        }
+
+        writeln!(
+            writer,
+            r#"
+            </Stmt>
             </BkToCstmrStmt>
             </Document>
-            "#,
-            statement_id,
-            account_id,
-            entries.join("\n")
-        )
+            "#
+        )?;
+
+        Ok(())
     }
 }
 
@@ -123,8 +136,9 @@ fn test_multiple_transactions_to_camt053() {
             description: "Credit".to_string(),
         },
     ];
-
-    let output = Camt053Format::from_transactions(&txs);
+    let mut buffer = Vec::new();
+    let _ = Camt053Format::from_transactions(&txs, &mut buffer);
+    let output = String::from_utf8(buffer).unwrap();
     assert!(output.contains("<Ntry>"));
     assert_eq!(output.matches("<Ntry>").count(), 2);
     assert!(output.contains("100.5"));

@@ -1,6 +1,9 @@
 use clap::{Parser, ValueEnum};
-use std::io::{self, Read};
-use upload::upload;
+use std::{
+    fs::File,
+    io::{self, Read, Write},
+};
+// use upload::upload;
 
 const LIMIT: usize = 100 * 1024 * 1024; // 100 MiB
 
@@ -67,12 +70,17 @@ fn read_input(path: Option<&str>) -> io::Result<Vec<u8>> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let input_data = read_input(cli.input.as_deref())?;
-    let output_text = converter::convert(
+    let output_writer: Box<dyn Write> = if let Some(filename) = cli.output.as_deref() {
+        Box::new(File::create(filename)?)
+    } else {
+        Box::new(io::stdout())
+    };
+    let _ = converter::convert(
         &input_data[..],
         &converter::Format::from(cli.in_format),
         &converter::Format::from(cli.out_format),
+        output_writer,
     )?;
 
-    upload(output_text.as_bytes(), cli.output.as_deref())?;
     Ok(())
 }
