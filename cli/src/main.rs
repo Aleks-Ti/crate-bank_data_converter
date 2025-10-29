@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         Box::new(io::stdout())
     };
-    let _ = converter::convert(
+    converter::convert(
         &input_data[..],
         &converter::Format::from(cli.in_format),
         &converter::Format::from(cli.out_format),

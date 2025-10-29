@@ -24,22 +24,31 @@ impl ToFormat for CsvFormat {
 pub struct Mt940Format;
 impl ToFormat for Mt940Format {
     fn from_transactions<W: Write>(txs: &[Transaction], mut writer: W) -> std::io::Result<()> {
-        // let mut output = String::new();
         for tx in txs {
-            writeln!(writer, ":20:{}\n", tx.reference)?;
-            writeln!(writer, ":25:{}\n", tx.account)?;
+            writeln!(writer, ":20:{}", tx.reference)?;
+            writeln!(writer, ":25:{}", tx.account)?;
+
+            let (yy, mm, dd) = if tx.value_date.len() >= 10 {
+                (
+                    &tx.value_date[2..4],
+                    &tx.value_date[5..7],
+                    &tx.value_date[8..10],
+                )
+            } else {
+                ("00", "01", "01")
+            };
+
+            let sign = if tx.amount < 0.0 { "D" } else { "C" };
             writeln!(
                 writer,
-                ":61:{}{}{}DR{:.2}NMSCNONREF\n",
-                &tx.value_date[2..4],
-                &tx.value_date[5..7],
-                &tx.value_date[8..10],
-                tx.amount
+                ":61:{}{}{}{}{:.2}NMSCNONREF",
+                yy, mm, dd, sign, tx.amount
             )?;
+
             if !tx.description.is_empty() {
-                writeln!(writer, ":86:{}\n", tx.description)?;
+                writeln!(writer, ":86:{}", tx.description)?;
             }
-            writeln!(writer, "{}", '\n')?;
+            writeln!(writer)?;
         }
         Ok(())
     }
