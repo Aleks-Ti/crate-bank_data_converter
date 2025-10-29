@@ -1,3 +1,12 @@
+//! Библиотека для ковертации банковских данных из одно формата в другой.
+//!
+//! Поддерживаемые форматы:
+//! - CSV
+//! - MT940 (SWIFT)
+//! - CAMT.053 (ISO 20022 XML)
+
+
+#![warn(missing_docs)]
 pub mod error;
 mod from_parser;
 mod model;
@@ -5,16 +14,19 @@ mod to_format;
 
 pub use error::ConvertError;
 pub use from_parser::FromParser;
-pub use model::Transaction;
 pub use to_format::ToFormat;
 
 use parser::{Camt053Parser, CsvParser, Mt940Parser, Parser};
 use std::{io::Read, io::Write};
 
+/// Контейнер для поддерживаемых форматов.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Format {
+    /// CSV.
     Csv,
+    /// MT940 (SWIFT).
     Mt940,
+    /// CAMT.053 (ISO 20022 XML).
     Camt053,
 }
 
@@ -29,6 +41,8 @@ impl From<&str> for Format {
     }
 }
 
+/// Конверте в различные форматы
+/// Поддерживаемые форматы: [`Format`]
 pub fn convert<R: Read, W: Write>(input: R, from: &Format, to: &Format, output: W) -> Result<(), ConvertError> {
     let transactions = match from {
         Format::Csv => {

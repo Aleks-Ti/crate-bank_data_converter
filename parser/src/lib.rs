@@ -1,35 +1,58 @@
+//! Библиотека Parser.
+//!
+//! Поддерживаемые форматы:
+//! - CSV
+//! - MT940 (SWIFT)
+//! - CAMT.053 (ISO 20022 XML)
+
+#![warn(missing_docs)]
 use std::io::Read;
 mod error;
 use csv::ReaderBuilder;
 pub use error::ParseError;
 
+/// Базовый интерфейс для *Parser.
 pub trait Parser {
+    /// Обязательная реализация метода parse.
     fn parse<R: Read>(input: R) -> Result<Self, ParseError>
     where
         Self: Sized;
 }
 
+/// A single row parsed from a CSV file.
 #[derive(Debug)]
 pub struct CsvRow {
+    /// The raw fields of the CSV row, as strings.
     pub row: Vec<String>,
 }
 
+/// A parser for CSV input
 #[derive(Debug)]
 pub struct CsvParser {
+    /// All parsed rows from the input
     pub rows: Vec<CsvRow>,
 }
+
+/// A single record from an MT940 file.
 #[derive(Debug)]
 pub struct Mt940Record {
+    /// The tag of the MT940 field (e.g., "20", "25").
     pub tag: String,
+    /// The value associated with the tag.
     pub value: String,
 }
+
+/// A parser for MT940 format
 #[derive(Debug)]
 pub struct Mt940Parser {
+    /// Parsed MT940 records.
     pub data: Vec<Mt940Record>,
 }
 
+/// A parser for CAMT.053 XML format
 #[derive(Debug)]
 pub struct Camt053Parser {
+    /// Raw XML content of the CAMT.053 document.
     pub data: String,
 }
 

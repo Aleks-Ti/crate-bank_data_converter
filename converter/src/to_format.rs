@@ -2,7 +2,11 @@ use std::io::Write;
 
 use crate::model::Transaction;
 
+/// Базовый trait для конвертеров форматов.
 pub trait ToFormat {
+    /// Обязательный метод для всех кто реализует ToFormat.
+    /// 
+    /// Записывает в Write данные преобразования.
     fn from_transactions<W: Write>(txs: &[Transaction], writer: W) -> std::io::Result<()>;
 }
 

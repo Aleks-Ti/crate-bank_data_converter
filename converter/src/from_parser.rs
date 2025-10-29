@@ -1,7 +1,10 @@
 use crate::model::Transaction;
 use parser::{Camt053Parser, CsvParser, Mt940Parser};
 use regex::Regex;
+
+/// Трэйт для *Parser.
 pub trait FromParser {
+    /// Конвертация в определенный формат.
     fn to_transactions(&self) -> Vec<Transaction>;
 }
 

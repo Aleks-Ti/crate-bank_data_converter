@@ -1,6 +1,9 @@
 #[derive(Debug)]
+/// Контейнер с ошибками.
 pub enum ParseError {
+    /// Ошибка данных полученных в Read.
     Io(std::io::Error),
+    /// Не корректные данные в структуре.
     InvalidFormat(String),
 }
 impl std::fmt::Display for ParseError {
