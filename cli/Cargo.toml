@@ -7,4 +7,3 @@ edition = "2024"
 clap = { version = "4", features = ["derive"] }
 parser = { path = "../parser" }
 converter = { path = "../converter" }
-upload = { path = "../upload" }
