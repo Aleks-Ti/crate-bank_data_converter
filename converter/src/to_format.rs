@@ -44,27 +44,48 @@ impl ToFormat for Mt940Format {
 pub struct Camt053Format;
 impl ToFormat for Camt053Format {
     fn from_transactions(txs: &[Transaction]) -> String {
-        let tx = txs.first().cloned().unwrap_or_else(|| Transaction {
-            reference: "DEFAULT".to_string(),
-            ..Default::default()
-        });
+        if txs.is_empty() {
+            return r#"<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02"></Document>"#.to_string();
+        }
+
+        let statement_id = &txs[0].reference;
+        let account_id = &txs[0].account;
+
+        let entries: Vec<String> = txs
+            .iter()
+            .map(|tx| {
+                format!(
+                    r#"
+                    <Ntry>
+                        <Amt Ccy="{}">{}</Amt>
+                        <RvslInd>{}</RvslInd>
+                        <AddtlNtryInf>{}</AddtlNtryInf>
+                    </Ntry>
+                    "#,
+                    tx.currency,
+                    tx.amount.abs(),
+                    if tx.amount < 0.0 { "true" } else { "false" },
+                    tx.description
+                )
+            })
+            .collect();
+
         format!(
-            r#"
-<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
-  <BkToCstmrStmt>
-    <Stmt>
-      <Id>{}</Id>
-      <Acct>
-        <Id>{}</Id>
-      </Acct>
-      <Bal>
-        <Amt Ccy="{}">{}</Amt>
-      </Bal>
-    </Stmt>
-  </BkToCstmrStmt>
-</Document>
-"#,
-            tx.reference, tx.account, tx.currency, tx.amount
+            r#"<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+            <BkToCstmrStmt>
+                <Stmt>
+                <Id>{}</Id>
+                <Acct>
+                <Id>{}</Id>
+                </Acct>
+                {}
+                </Stmt>
+            </BkToCstmrStmt>
+            </Document>
+            "#,
+            statement_id,
+            account_id,
+            entries.join("\n")
         )
     }
 }
@@ -80,4 +101,32 @@ impl Default for Transaction {
             description: "Default".to_string(),
         }
     }
+}
+
+#[test]
+fn test_multiple_transactions_to_camt053() {
+    let txs = vec![
+        Transaction {
+            reference: "STMT1".to_string(),
+            account: "ACC1".to_string(),
+            amount: -100.5,
+            currency: "USD".to_string(),
+            value_date: "2023-01-01".to_string(),
+            description: "Debit".to_string(),
+        },
+        Transaction {
+            reference: "STMT1".to_string(),
+            account: "ACC1".to_string(),
+            amount: 200.0,
+            currency: "USD".to_string(),
+            value_date: "2023-01-02".to_string(),
+            description: "Credit".to_string(),
+        },
+    ];
+
+    let output = Camt053Format::from_transactions(&txs);
+    assert!(output.contains("<Ntry>"));
+    assert_eq!(output.matches("<Ntry>").count(), 2);
+    assert!(output.contains("100.5"));
+    assert!(output.contains("200"));
 }
